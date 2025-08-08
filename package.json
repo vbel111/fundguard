@@ -1,0 +1,30 @@
+{
+  "name": "fundguard",
+  "version": "1.0.0",
+  "description": "Web3 governance and budget transparency platform for local communities",
+  "main": "index.js",
+  "scripts": {
+    "dev": "http-server . -p 3000 -o",
+    "start": "http-server . -p 3000",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "web3",
+    "governance",
+    "DAO",
+    "budget",
+    "transparency",
+    "blockchain",
+    "polygon"
+  ],
+  "author": "FundGuard Team",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.8.0",
+    "web3modal": "^1.9.12",
+    "chart.js": "^4.4.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
