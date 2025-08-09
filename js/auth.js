@@ -217,7 +217,7 @@ class FundGuardAuth {
         // In a real app, this would call a faucet API
         return {
             success: true,
-            message: `Test funds requested for ${this.currentUser.address}. Check Mumbai faucet.`,
+            message: `Test funds requested for ${this.currentUser.address}. Check Amoy faucet.`,
             address: this.currentUser.address
         };
     }

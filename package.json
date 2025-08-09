@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "http-server . -p 3000 -o",
     "start": "http-server . -p 3000",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "hardhat compile",
+    "deploy:local": "hardhat run scripts/deploy.js --network hardhat",
+    "deploy:amoy": "hardhat run scripts/deploy.js --network polygonAmoy",
+    "deploy:polygon": "hardhat run scripts/deploy.js --network polygon",
+    "node": "hardhat node"
   },
   "keywords": [
     "web3",
@@ -20,11 +25,15 @@
   "author": "FundGuard Team",
   "license": "MIT",
   "dependencies": {
+    "chart.js": "^4.4.0",
     "ethers": "^6.8.0",
-    "web3modal": "^1.9.12",
-    "chart.js": "^4.4.0"
+    "web3modal": "^1.9.12"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@openzeppelin/contracts": "^5.4.0",
+    "dotenv": "^17.2.1",
+    "hardhat": "^2.26.2",
     "http-server": "^14.1.1"
   }
 }

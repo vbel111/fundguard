@@ -8,7 +8,7 @@ let userAddress;
 let auth;
 
 // Contract addresses (replace with deployed contract addresses)
-const CONTRACT_ADDRESS = "0x..."; // Replace with actual deployed contract address
+const CONTRACT_ADDRESS = "0x6C698C778F9BF87Fe19A8f1825a81CaeEFCC424b";
 
 // Contract ABI (updated for corrected contract)
 const CONTRACT_ABI = [
@@ -34,13 +34,8 @@ const CONTRACT_ABI = [
     "event CivicPointsAwarded(address indexed member, uint256 points, string reason)"
 ];
 
-const CIVIC_POINTS_ABI = [
-    "function balanceOf(address account) public view returns (uint256)",
-    "function awardPoints(address to, uint256 amount) public"
-];
-
-// Polygon Mumbai RPC URL
-const MUMBAI_RPC_URL = "https://rpc-mumbai.maticvigil.com/";
+// Polygon Amoy RPC URL (updated from deprecated Mumbai)
+const AMOY_RPC_URL = "https://rpc-amoy.polygon.technology";
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
@@ -400,7 +395,7 @@ async function requestTestFunds() {
     try {
         const result = await auth.requestTestFunds();
         if (result.success) {
-            alert(`Test funds requested for your wallet!\n\nAddress: ${result.address}\n\nThe Mumbai faucet will open in a new tab. Please request MATIC tokens there.`);
+            alert(`Test funds requested for your wallet!\n\nAddress: ${result.address}\n\nThe Amoy faucet will open in a new tab. Please request MATIC tokens there.`);
         }
     } catch (error) {
         console.error('Error requesting test funds:', error);
@@ -477,14 +472,39 @@ async function connectWallet() {
 // Initialize smart contracts
 async function initializeContracts() {
     try {
-        // Initialize main contract
-        if (CONTRACT_ADDRESS !== "0x...") {
-            contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+        // Get network info to ensure we're on the right network
+        const network = await signer.provider.getNetwork();
+        console.log('Connected to network:', network.name, 'Chain ID:', network.chainId.toString());
+        
+        // Check if we're on Polygon Amoy (Chain ID: 80002)
+        if (network.chainId !== 80002n) {
+            console.warn('Warning: Not connected to Polygon Amoy testnet. Some features may not work.');
         }
         
-        console.log('Contracts initialized');
+        // Initialize main contract
+        if (CONTRACT_ADDRESS && CONTRACT_ADDRESS !== "0x...") {
+            contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+            console.log('FundGuard contract initialized at:', CONTRACT_ADDRESS);
+            
+            // Test contract connection by checking if it's deployed
+            try {
+                const code = await signer.provider.getCode(CONTRACT_ADDRESS);
+                if (code === '0x') {
+                    throw new Error('No contract deployed at this address');
+                }
+                console.log('✅ Contract verified on network');
+            } catch (error) {
+                console.error('❌ Contract verification failed:', error.message);
+                throw new Error(`Contract not found at ${CONTRACT_ADDRESS}. Please check the contract address and network.`);
+            }
+        } else {
+            console.warn('Contract address not set');
+        }
+        
+        console.log('Contracts initialized successfully');
     } catch (error) {
         console.error('Error initializing contracts:', error);
+        throw error;
     }
 }
 
@@ -510,7 +530,6 @@ async function disconnect() {
     signer = null;
     userAddress = null;
     contract = null;
-    civicPointsContract = null;
     
     showWalletSection();
 }
@@ -941,7 +960,17 @@ async function verifyMilestone(milestoneId, approved) {
         showLoading('Submitting verification...');
         
         if (!contract) {
-            alert('Contract not initialized. Please ensure you are connected to the correct network.');
+            const errorMsg = 'Contract not initialized. Please ensure you are connected to Polygon Amoy testnet and the contract is deployed.';
+            console.error(errorMsg);
+            alert(errorMsg);
+            hideLoading();
+            return;
+        }
+        
+        // Verify we're connected to the right network
+        const network = await signer.provider.getNetwork();
+        if (network.chainId !== 80002n) {
+            alert(`Wrong network detected. Please switch to Polygon Amoy testnet (Chain ID: 80002). Currently on: ${network.name || 'Unknown'} (${network.chainId})`);
             hideLoading();
             return;
         }
@@ -961,7 +990,19 @@ async function verifyMilestone(milestoneId, approved) {
         hideLoading();
     } catch (error) {
         console.error('Error verifying milestone:', error);
-        alert('Failed to verify milestone. Please try again.');
+        let errorMessage = 'Failed to verify milestone. ';
+        
+        if (error.message.includes('user rejected')) {
+            errorMessage += 'Transaction was cancelled.';
+        } else if (error.message.includes('insufficient funds')) {
+            errorMessage += 'Insufficient funds for gas fees.';
+        } else if (error.message.includes('network')) {
+            errorMessage += 'Network connection issue. Please check your connection.';
+        } else {
+            errorMessage += 'Please try again or contact support.';
+        }
+        
+        alert(errorMessage);
         hideLoading();
     }
 }
@@ -1090,6 +1131,52 @@ function formatCurrency(amount, currency = 'USD') {
         style: 'currency',
         currency: currency
     }).format(amount);
+}
+
+// Check network connection and provide helpful info
+async function checkNetworkAndContract() {
+    try {
+        if (!signer) {
+            return { success: false, message: 'No wallet connected' };
+        }
+        
+        const network = await signer.provider.getNetwork();
+        const chainId = network.chainId;
+        
+        console.log('Network check - Chain ID:', chainId.toString(), 'Name:', network.name);
+        
+        // Check if we're on Polygon Amoy
+        if (chainId !== 80002n) {
+            return {
+                success: false,
+                message: `Wrong network. Expected: Polygon Amoy (80002), Got: ${network.name || 'Unknown'} (${chainId.toString()})`
+            };
+        }
+        
+        // Check contract deployment
+        if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS === "0x...") {
+            return { success: false, message: 'Contract address not configured' };
+        }
+        
+        const code = await signer.provider.getCode(CONTRACT_ADDRESS);
+        if (code === '0x') {
+            return { 
+                success: false, 
+                message: `No contract found at ${CONTRACT_ADDRESS} on Polygon Amoy. Please verify the contract address.` 
+            };
+        }
+        
+        return { 
+            success: true, 
+            message: `Connected to Polygon Amoy. Contract verified at ${CONTRACT_ADDRESS}` 
+        };
+        
+    } catch (error) {
+        return { 
+            success: false, 
+            message: `Network check failed: ${error.message}` 
+        };
+    }
 }
 
 // Export functions for testing

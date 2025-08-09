@@ -1,4 +1,7 @@
-# Contract Deployment Guide (Web3Auth Integration)
+# Contract Deployment Guide (Web3Auth Inte3. **Configure Hardhat**
+   - Update `hardhat.config.js` with Amoy testnet configuration
+
+4. **Deploy Script**ion)
 
 ## Prerequisites
 
@@ -11,7 +14,7 @@
    - Already configured in `js/web3auth.js`
    - Ready for production use
 
-2. **Setup Polygon Mumbai Testnet** (Automatic)
+2. **Setup Polygon Amoy Testnet** (Automatic)
    - Network is configured automatically
    - Users don't need to add networks manually
    - All blockchain interactions are hidden
@@ -56,7 +59,7 @@
 
 4. **Deploy**
    ```bash
-   npx hardhat run scripts/deploy.js --network mumbai
+   npx hardhat run scripts/deploy.js --network polygonAmoy
    ```
 
 ## Testing the Application

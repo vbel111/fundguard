@@ -363,7 +363,7 @@ class FundGuardAuth {
             return await this.provider.getSigner();
         } else if (this.currentUser.userType === 'user' && this.userWallet) {
             // Regular user with generated wallet
-            const provider = new ethers.JsonRpcProvider("https://rpc-mumbai.maticvigil.com/");
+            const provider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology");
             return this.userWallet.connect(provider);
         } else {
             throw new Error("No wallet available");
@@ -452,7 +452,7 @@ class FundGuardAuth {
             if (this.currentUser.userType === 'organization' && this.provider) {
                 provider = this.provider;
             } else {
-                provider = new ethers.JsonRpcProvider("https://rpc-mumbai.maticvigil.com/");
+                provider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology");
             }
             
             const balance = await provider.getBalance(address);
@@ -467,7 +467,7 @@ class FundGuardAuth {
     async requestTestFunds() {
         const address = await this.getAddress();
         
-        // Open Mumbai faucet
+        // Open Amoy faucet
         const faucetUrl = `https://faucet.polygon.technology/`;
         window.open(faucetUrl, '_blank');
         
@@ -499,7 +499,7 @@ class FundGuardAuth {
             return {
                 address: address,
                 balance: balance + " MATIC",
-                network: "Polygon Mumbai Testnet",
+                network: "Polygon Amoy Testnet",
                 userType: this.currentUser.userType,
                 userInfo: this.getUserInfo()
             };
