@@ -2,7 +2,6 @@
 
 > A mobile-first Web3 governance and budget transparency platform that empowers local communities to track public funds, vote on proposals, and verify project milestones.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Web3Auth](https://img.shields.io/badge/Web3Auth-v9.0.0-blue)](https://web3auth.io/)
 [![Polygon](https://img.shields.io/badge/Polygon-Mumbai-purple)](https://polygon.technology/)
 
@@ -101,6 +100,3 @@ FundGuard is designed with mobile users in mind, featuring:
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License
-
-MIT License - see LICENSE file for details
