@@ -7,9 +7,6 @@
     <link rel="stylesheet" href="styles/main.css">
     <script src="https://unpkg.com/ethers@6.8.0/dist/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Web3Auth SDK - Using unpkg for better compatibility -->
-    <script src="https://unpkg.com/@web3auth/modal@8.0.0/dist/modal.umd.min.js"></script>
-    <script src="https://unpkg.com/@web3auth/ethereum-provider@8.0.0/dist/ethereumProvider.umd.min.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -47,44 +44,215 @@
                 <!-- Welcome Card -->
                 <div class="card welcome-card">
                     <h2>Welcome to FundGuard</h2>
-                    <p>Join your community in transparent governance and budget oversight. Sign in with your email or social account to participate in proposals, vote on community decisions, and verify project milestones.</p>
+                    <p>Join your community in transparent governance and budget oversight. Choose your account type to get started:</p>
                     
                     <div class="auth-options">
-                        <button id="loginWithEmailBtn" class="btn btn-primary btn-large">
-                            � Sign In with Email
-                        </button>
-                        <button id="loginWithGoogleBtn" class="btn btn-secondary btn-large">
-                            🔍 Sign In with Google
-                        </button>
-                        <button id="loginWithDiscordBtn" class="btn btn-secondary btn-large">
-                            💬 Sign In with Discord
-                        </button>
-                    </div>
-                    
-                    <div class="privacy-note">
-                        <p><small>🔐 Your blockchain wallet is created automatically and securely managed for you. No technical knowledge required!</small></p>
+                        <div class="auth-option-card">
+                            <h3>👥 Community Member</h3>
+                            <p>Vote on proposals, verify milestones, and participate in community governance.</p>
+                            <button id="showUserRegisterBtn" class="btn btn-primary btn-large">
+                                📧 Sign Up as Member
+                            </button>
+                            <button id="showUserLoginBtn" class="btn btn-secondary">
+                                Already have an account? Sign In
+                            </button>
+                        </div>
+                        
+                        <div class="auth-option-card organization">
+                            <h3>🏢 Organization</h3>
+                            <p>Create proposals, manage projects, and connect your organization's wallet.</p>
+                            <button id="showOrgRegisterBtn" class="btn btn-primary btn-large">
+                                🔗 Register Organization
+                            </button>
+                            <button id="showOrgLoginBtn" class="btn btn-secondary">
+                                Already registered? Sign In
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Login Form -->
-                <div id="emailLoginForm" class="card auth-form hidden">
-                    <h3>Sign In with Email</h3>
-                    <form id="emailLoginFormElement">
+                <!-- User Registration Form -->
+                <div id="userRegisterForm" class="card auth-form hidden">
+                    <h3>Sign Up as Community Member</h3>
+                    <form id="userRegisterFormElement">
                         <div class="form-group">
-                            <label for="emailInput">Email Address</label>
-                            <input type="email" id="emailInput" required placeholder="your@email.com">
+                            <label for="userRegisterEmail">Email Address</label>
+                            <input type="email" id="userRegisterEmail" required placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="userRegisterPassword">Password</label>
+                            <input type="password" id="userRegisterPassword" required placeholder="At least 6 characters">
+                        </div>
+                        <div class="form-group">
+                            <label for="userRegisterConfirmPassword">Confirm Password</label>
+                            <input type="password" id="userRegisterConfirmPassword" required placeholder="Confirm your password">
                         </div>
                         <div class="form-actions">
-                            <button type="button" id="cancelEmailLogin" class="btn btn-secondary">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Continue</button>
+                            <button type="button" id="cancelUserRegister" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Account</button>
                         </div>
                     </form>
                     <div class="info-box">
-                        <p><strong>🚀 What happens next:</strong></p>
+                        <p><strong>🔐 Your account includes:</strong></p>
                         <ul>
-                            <li>We'll send a secure login link to your email</li>
-                            <li>Your blockchain wallet is created automatically</li>
-                            <li>Start participating immediately after verification</li>
+                            <li>Automatically generated blockchain wallet</li>
+                            <li>Secure voting capabilities</li>
+                            <li>Milestone verification rights</li>
+                            <li>Community governance participation</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- User Login Form -->
+                <div id="userLoginForm" class="card auth-form hidden">
+                    <h3>Sign In - Community Member</h3>
+                    <form id="userLoginFormElement">
+                        <div class="form-group">
+                            <label for="userLoginEmail">Email Address</label>
+                            <input type="email" id="userLoginEmail" required placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="userLoginPassword">Password</label>
+                            <input type="password" id="userLoginPassword" required placeholder="Your password">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="cancelUserLogin" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Sign In</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Organization Registration Form -->
+                <div id="orgRegisterForm" class="card auth-form hidden">
+                    <h3>Register Organization</h3>
+                    <form id="orgRegisterFormElement">
+                        <div class="form-group">
+                            <label for="orgName">Organization Name</label>
+                            <input type="text" id="orgName" required placeholder="Your Organization Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="orgRegisterEmail">Organization Email</label>
+                            <input type="email" id="orgRegisterEmail" required placeholder="organization@domain.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="orgRegisterPassword">Password</label>
+                            <input type="password" id="orgRegisterPassword" required placeholder="At least 6 characters">
+                        </div>
+                        <div class="form-group">
+                            <label for="orgRegisterConfirmPassword">Confirm Password</label>
+                            <input type="password" id="orgRegisterConfirmPassword" required placeholder="Confirm your password">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="cancelOrgRegister" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Register</button>
+                        </div>
+                    </form>
+                    <div class="info-box">
+                        <p><strong>🏢 Organization features:</strong></p>
+                        <ul>
+                            <li>Create and manage your community</li>
+                            <li>Get a unique community code to share</li>
+                            <li>Create funding proposals</li>
+                            <li>Connect your organization's wallet</li>
+                            <li>Manage project milestones</li>
+                            <li>Access advanced governance tools</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Organization Login Form -->
+                <div id="orgLoginForm" class="card auth-form hidden">
+                    <h3>Sign In - Organization</h3>
+                    <form id="orgLoginFormElement">
+                        <div class="form-group">
+                            <label for="orgLoginEmail">Organization Email</label>
+                            <input type="email" id="orgLoginEmail" required placeholder="organization@domain.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="orgLoginPassword">Password</label>
+                            <input type="password" id="orgLoginPassword" required placeholder="Your password">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="cancelOrgLogin" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Sign In</button>
+                        </div>
+                    </form>
+                    <div class="info-box">
+                        <p><strong>🔗 After login:</strong></p>
+                        <ul>
+                            <li>You'll be prompted to connect your organization's wallet</li>
+                            <li>MetaMask or compatible wallet required</li>
+                            <li>Your wallet will be used for proposal creation and transactions</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Organization Wallet Connection -->
+                <div id="orgWalletSection" class="card auth-form hidden">
+                    <h3>Connect Organization Wallet</h3>
+                    <div class="wallet-connect-info">
+                        <p>As an organization, you need to connect your wallet to create proposals and manage funds.</p>
+                        <div class="wallet-requirements">
+                            <h4>Requirements:</h4>
+                            <ul>
+                                <li>MetaMask or compatible wallet installed</li>
+                                <li>Connected to Polygon Mumbai Testnet</li>
+                                <li>Some MATIC tokens for transaction fees</li>
+                            </ul>
+                        </div>
+                        <button id="connectOrgWalletBtn" class="btn btn-primary btn-large">
+                            🔗 Connect Wallet
+                        </button>
+                        <div class="wallet-status hidden" id="walletStatus">
+                            <p>✅ Wallet connected successfully!</p>
+                            <button id="proceedToDashboard" class="btn btn-success">
+                                Continue to Dashboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Community Join Section -->
+        <section id="communitySection" class="section hidden">
+            <div class="container">
+                <div class="card welcome-card">
+                    <h2>Join Your Community</h2>
+                    <p>Enter the community code provided by your organization to access voting, proposals, and community governance.</p>
+                    
+                    <!-- Join Community Form -->
+                    <div class="community-join-form">
+                        <form id="joinCommunityForm">
+                            <div class="form-group">
+                                <label for="communityCode">Community Code</label>
+                                <input type="text" id="communityCode" required placeholder="COM-XXXXXXXX" 
+                                       style="text-transform: uppercase;" maxlength="12">
+                                <small class="form-hint">Enter the 12-character code provided by your organization</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-large">
+                                    🏛️ Join Community
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- User's Communities -->
+                    <div id="userCommunitiesSection" class="user-communities hidden">
+                        <h3>Your Communities</h3>
+                        <div id="userCommunitiesList" class="communities-list">
+                            <!-- Communities will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <p><strong>🔑 About Community Codes:</strong></p>
+                        <ul>
+                            <li>Organizations create unique codes for their communities</li>
+                            <li>Use the code to join and participate in governance</li>
+                            <li>You can join multiple communities</li>
+                            <li>Each community has its own proposals and voting</li>
                         </ul>
                     </div>
                 </div>
@@ -129,6 +297,10 @@
                         <div class="user-identity">
                             <span id="userEmailDisplay" class="user-email-display"></span>
                             <span id="userAddress" class="address"></span>
+                            <div id="communityInfo" class="community-info-display">
+                                <span id="currentCommunityName" class="community-name"></span>
+                                <span id="currentCommunityCode" class="community-code-display"></span>
+                            </div>
                         </div>
                         <div class="user-stats">
                             <div class="civic-points">
@@ -161,6 +333,31 @@
                     </div>
                     <div class="progress-bar">
                         <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Organization Admin Panel -->
+                <div id="orgAdminPanel" class="card admin-panel hidden">
+                    <h3>🏢 Organization Management</h3>
+                    <div class="admin-info">
+                        <div class="community-share">
+                            <h4>Share Your Community Code</h4>
+                            <div class="code-share-box">
+                                <span id="organizationCommunityCode" class="share-code"></span>
+                                <button id="copyCommunityCode" class="btn btn-secondary btn-small">📋 Copy</button>
+                            </div>
+                            <p class="share-instructions">Share this code with your members so they can join your community</p>
+                        </div>
+                        <div class="member-stats">
+                            <div class="stat">
+                                <div class="stat-value" id="memberCount">0</div>
+                                <div class="stat-label">Members</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="activeProposals">0</div>
+                                <div class="stat-label">Active Proposals</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

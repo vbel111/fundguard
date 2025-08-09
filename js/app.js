@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Auto-login handler (called from web3auth.js)
 window.handleAutoLogin = async () => {
-    await connectWithWeb3Auth();
+    await connectWithAuth();
 };
 
 // Initialize Web3Modal
@@ -78,14 +78,34 @@ function initWeb3Modal() {
 
 // Set up event listeners
 function setupEventListeners() {
-    // Authentication buttons
-    document.getElementById('loginWithEmailBtn')?.addEventListener('click', showEmailLoginForm);
-    document.getElementById('loginWithGoogleBtn')?.addEventListener('click', handleGoogleLogin);
-    document.getElementById('loginWithDiscordBtn')?.addEventListener('click', handleDiscordLogin);
+    // Authentication buttons - User
+    document.getElementById('showUserRegisterBtn')?.addEventListener('click', showUserRegisterForm);
+    document.getElementById('showUserLoginBtn')?.addEventListener('click', showUserLoginForm);
+    document.getElementById('userRegisterFormElement')?.addEventListener('submit', handleUserRegister);
+    document.getElementById('userLoginFormElement')?.addEventListener('submit', handleUserLogin);
+    document.getElementById('cancelUserRegister')?.addEventListener('click', showAuthWelcome);
+    document.getElementById('cancelUserLogin')?.addEventListener('click', showAuthWelcome);
     
-    // Email form
-    document.getElementById('emailLoginFormElement')?.addEventListener('submit', handleEmailLogin);
-    document.getElementById('cancelEmailLogin')?.addEventListener('click', showAuthWelcome);
+    // Authentication buttons - Organization
+    document.getElementById('showOrgRegisterBtn')?.addEventListener('click', showOrgRegisterForm);
+    document.getElementById('showOrgLoginBtn')?.addEventListener('click', showOrgLoginForm);
+    document.getElementById('orgRegisterFormElement')?.addEventListener('submit', handleOrgRegister);
+    document.getElementById('orgLoginFormElement')?.addEventListener('submit', handleOrgLogin);
+    document.getElementById('cancelOrgRegister')?.addEventListener('click', showAuthWelcome);
+    document.getElementById('cancelOrgLogin')?.addEventListener('click', showAuthWelcome);
+    
+    // Organization wallet connection
+    document.getElementById('connectOrgWalletBtn')?.addEventListener('click', handleOrgWalletConnect);
+    document.getElementById('proceedToDashboard')?.addEventListener('click', proceedToDashboard);
+    
+    // Community joining
+    document.getElementById('joinCommunityForm')?.addEventListener('submit', handleJoinCommunity);
+    
+    // Organization admin actions
+    document.getElementById('copyCommunityCode')?.addEventListener('click', copyCommunityCode);
+    
+    // Organization admin features
+    document.getElementById('copyCommunityCode')?.addEventListener('click', copyCommunityCode);
     
     // User actions
     document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
@@ -109,9 +129,25 @@ function setupEventListeners() {
 function showAuthSection() {
     document.getElementById('authSection').classList.remove('hidden');
     document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('communitySection').classList.add('hidden');
     document.getElementById('dashboardSection').classList.add('hidden');
     showAuthWelcome();
     updateHeaderForLoggedOut();
+}
+
+function showCommunitySection() {
+    document.getElementById('authSection').classList.add('hidden');
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('communitySection').classList.remove('hidden');
+    document.getElementById('dashboardSection').classList.add('hidden');
+    
+    // Update header to show user is logged in
+    const userInfo = auth.getUserInfo();
+    if (userInfo) {
+        updateHeaderForLoggedIn(userInfo);
+    }
+    
+    loadUserCommunities();
 }
 
 function showAuthWelcome() {
@@ -119,9 +155,39 @@ function showAuthWelcome() {
     document.querySelector('.welcome-card').classList.remove('hidden');
 }
 
-function showEmailLoginForm() {
+// Show User Forms
+function showUserRegisterForm() {
     document.querySelector('.welcome-card').classList.add('hidden');
-    document.getElementById('emailLoginForm').classList.remove('hidden');
+    document.getElementById('userRegisterForm').classList.remove('hidden');
+}
+
+function showUserLoginForm() {
+    document.querySelector('.welcome-card').classList.add('hidden');
+    document.getElementById('userLoginForm').classList.remove('hidden');
+}
+
+// Show Organization Forms
+function showOrgRegisterForm() {
+    document.querySelector('.welcome-card').classList.add('hidden');
+    document.getElementById('orgRegisterForm').classList.remove('hidden');
+}
+
+function showOrgLoginForm() {
+    document.querySelector('.welcome-card').classList.add('hidden');
+    document.getElementById('orgLoginForm').classList.remove('hidden');
+}
+
+function showOrgWalletSection() {
+    document.getElementById('authSection').classList.add('hidden');
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('communitySection').classList.add('hidden');
+    document.getElementById('dashboardSection').classList.add('hidden');
+    
+    // Show the specific wallet section within auth section
+    document.getElementById('authSection').classList.remove('hidden');
+    document.querySelectorAll('.auth-form').forEach(form => form.classList.add('hidden'));
+    document.querySelector('.welcome-card').classList.add('hidden');
+    document.getElementById('orgWalletSection').classList.remove('hidden');
 }
 
 function updateHeaderForLoggedOut() {
@@ -132,73 +198,182 @@ function updateHeaderForLoggedOut() {
 function updateHeaderForLoggedIn(user) {
     document.getElementById('authButtons').classList.add('hidden');
     document.getElementById('userMenu').classList.remove('hidden');
-    document.getElementById('userEmail').textContent = user.email || user.name || 'User';
+    const userTypeLabel = user.userType === 'organization' ? '🏢' : '👤';
+    document.getElementById('userEmail').textContent = `${userTypeLabel} ${user.email}`;
 }
 
-// Authentication Handlers
-async function handleEmailLogin(event) {
+// User Authentication Handlers
+async function handleUserRegister(event) {
     event.preventDefault();
     
-    const email = document.getElementById('emailInput').value;
-    
-    if (!email) {
-        alert('Please enter your email address');
-        return;
-    }
-    
-    showWalletSection();
+    const email = document.getElementById('userRegisterEmail').value;
+    const password = document.getElementById('userRegisterPassword').value;
+    const confirmPassword = document.getElementById('userRegisterConfirmPassword').value;
     
     try {
-        const result = await auth.loginWithEmail(email);
+        const result = await auth.register(email, password, confirmPassword, 'user');
         
         if (result.success) {
-            await connectWithWeb3Auth();
+            alert('Account created successfully! You can now sign in.');
+            showUserLoginForm();
         } else {
-            alert('Login failed: ' + result.error);
-            showAuthSection();
+            alert('Registration failed: ' + result.message);
         }
     } catch (error) {
-        console.error('Email login error:', error);
+        console.error('User registration error:', error);
+        alert('Registration failed. Please try again.');
+    }
+}
+
+async function handleUserLogin(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('userLoginEmail').value;
+    const password = document.getElementById('userLoginPassword').value;
+    
+    try {
+        const result = await auth.login(email, password);
+        
+        if (result.success) {
+            // Regular users need to join a community first
+            showCommunitySection();
+        } else {
+            alert('Login failed: ' + result.message);
+        }
+    } catch (error) {
+        console.error('User login error:', error);
         alert('Login failed. Please try again.');
-        showAuthSection();
     }
 }
 
-async function handleGoogleLogin() {
-    showWalletSection();
+// Organization Authentication Handlers
+async function handleOrgRegister(event) {
+    event.preventDefault();
+    
+    const organizationName = document.getElementById('orgName').value;
+    const email = document.getElementById('orgRegisterEmail').value;
+    const password = document.getElementById('orgRegisterPassword').value;
+    const confirmPassword = document.getElementById('orgRegisterConfirmPassword').value;
     
     try {
-        const result = await auth.loginWithGoogle();
+        const result = await auth.register(email, password, confirmPassword, 'organization', organizationName);
         
         if (result.success) {
-            await connectWithWeb3Auth();
+            alert(`Organization registered successfully!\n\nYour community code is: ${result.communityCode}\n\nShare this code with your members so they can join your community.`);
+            showOrgLoginForm();
         } else {
-            alert('Google login failed: ' + result.error);
-            showAuthSection();
+            alert('Registration failed: ' + result.message);
         }
     } catch (error) {
-        console.error('Google login error:', error);
-        alert('Google login failed. Please try again.');
-        showAuthSection();
+        console.error('Organization registration error:', error);
+        alert('Registration failed. Please try again.');
     }
 }
 
-async function handleDiscordLogin() {
-    showWalletSection();
+async function handleOrgLogin(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('orgLoginEmail').value;
+    const password = document.getElementById('orgLoginPassword').value;
     
     try {
-        const result = await auth.loginWithDiscord();
+        const result = await auth.login(email, password);
         
         if (result.success) {
-            await connectWithWeb3Auth();
+            if (result.userType === 'organization') {
+                // Organizations need to connect their wallet
+                showOrgWalletSection();
+            } else {
+                await connectWithAuth();
+            }
         } else {
-            alert('Discord login failed: ' + result.error);
-            showAuthSection();
+            alert('Login failed: ' + result.message);
         }
     } catch (error) {
-        console.error('Discord login error:', error);
-        alert('Discord login failed. Please try again.');
-        showAuthSection();
+        console.error('Organization login error:', error);
+        alert('Login failed. Please try again.');
+    }
+}
+
+// Handle organization wallet connection
+async function handleOrgWalletConnect() {
+    try {
+        const connectResult = await auth.connectWallet();
+        if (connectResult.success) {
+            document.getElementById('walletStatus').classList.remove('hidden');
+            document.getElementById('connectOrgWalletBtn').style.display = 'none';
+        } else {
+            alert('Wallet connection failed: ' + connectResult.error);
+        }
+    } catch (error) {
+        console.error('Wallet connection error:', error);
+        alert('Failed to connect wallet. Please try again.');
+    }
+}
+
+// Proceed to dashboard after wallet connection
+async function proceedToDashboard() {
+    try {
+        await connectWithAuth();
+    } catch (error) {
+        console.error('Dashboard connection error:', error);
+        alert('Failed to connect to dashboard. Please try again.');
+    }
+}
+
+// Handle community joining
+async function handleJoinCommunity(event) {
+    event.preventDefault();
+    
+    const communityCode = document.getElementById('communityCode').value;
+    
+    try {
+        const result = await auth.joinCommunity(communityCode);
+        
+        if (result.success) {
+            alert(`${result.message}\n\nYou can now participate in ${result.community.name} governance!`);
+            await connectWithAuth();
+        } else {
+            alert('Failed to join community: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Community join error:', error);
+        alert('Failed to join community. Please try again.');
+    }
+}
+
+// Load user's communities
+function loadUserCommunities() {
+    const communities = auth.getUserCommunities();
+    const section = document.getElementById('userCommunitiesSection');
+    const list = document.getElementById('userCommunitiesList');
+    
+    if (communities.length > 0) {
+        section.classList.remove('hidden');
+        list.innerHTML = communities.map(community => `
+            <div class="community-item">
+                <div class="community-info">
+                    <h4>${community.name}</h4>
+                    <p class="community-code">Code: ${community.code}</p>
+                    <small>Joined: ${new Date(community.joinedAt).toLocaleDateString()}</small>
+                </div>
+                <button class="btn btn-primary" onclick="selectCommunity('${community.code}')">
+                    Enter Community
+                </button>
+            </div>
+        `).join('');
+    } else {
+        section.classList.add('hidden');
+    }
+}
+
+// Select and enter a community
+async function selectCommunity(communityCode) {
+    const success = auth.setCurrentCommunity(communityCode);
+    if (success) {
+        await connectWithAuth();
+    } else {
+        alert('Failed to enter community. Please try again.');
     }
 }
 
@@ -233,15 +408,30 @@ async function requestTestFunds() {
     }
 }
 
-// Connect with Web3Auth
-async function connectWithWeb3Auth() {
+// Auto-login handler (called from web3auth.js)
+window.handleAutoLogin = async () => {
+    await connectWithAuth();
+};
+
+// Connect with authentication system
+async function connectWithAuth() {
     try {
-        // Get provider and signer from Web3Auth
+        // Check if user has joined any community (for regular users)
+        const userInfo = auth.getUserInfo();
+        if (userInfo.userType === 'user') {
+            const currentCommunity = auth.getCurrentCommunity();
+            if (!currentCommunity) {
+                // User needs to join a community first
+                showCommunitySection();
+                return;
+            }
+        }
+        
+        // Get provider and signer from auth system
         signer = await auth.getSigner();
         userAddress = await auth.getAddress();
-        provider = signer.provider;
         
-        console.log('Connected with Web3Auth wallet:', userAddress);
+        console.log('Connected with wallet:', userAddress);
         
         // Initialize contracts
         await initializeContracts();
@@ -250,17 +440,21 @@ async function connectWithWeb3Auth() {
         await checkAndRegisterMember();
         
         // Update UI
-        const userInfo = auth.getUserInfo();
         updateHeaderForLoggedIn(userInfo);
         showDashboard();
         updateUserInfo();
         await loadDashboardData();
         
     } catch (error) {
-        console.error('Error connecting with Web3Auth:', error);
+        console.error('Error connecting:', error);
         alert('Failed to connect to blockchain. Please try again.');
         showAuthSection();
     }
+}
+
+// Connect with Web3Auth (legacy - now redirects to connectWithAuth)
+async function connectWithWeb3Auth() {
+    await connectWithAuth();
 }
 
 // Check if wallet is already connected
@@ -355,6 +549,7 @@ function showWalletSection() {
 function showDashboard() {
     document.getElementById('authSection').classList.add('hidden');
     document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('communitySection').classList.add('hidden');
     document.getElementById('dashboardSection').classList.remove('hidden');
 }
 
@@ -369,6 +564,19 @@ function updateUserInfo() {
     if (addressElement && userAddress) {
         addressElement.textContent = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
     }
+    
+    // Show community info
+    const currentCommunity = auth.getCurrentCommunity();
+    const communityNameEl = document.getElementById('currentCommunityName');
+    const communityCodeEl = document.getElementById('currentCommunityCode');
+    
+    if (currentCommunity && communityNameEl && communityCodeEl) {
+        communityNameEl.textContent = `🏛️ ${currentCommunity.name}`;
+        communityCodeEl.textContent = `Code: ${currentCommunity.code}`;
+        document.getElementById('communityInfo').style.display = 'block';
+    } else if (document.getElementById('communityInfo')) {
+        document.getElementById('communityInfo').style.display = 'none';
+    }
 }
 
 // Load dashboard data
@@ -379,7 +587,8 @@ async function loadDashboardData() {
             loadProposals(),
             loadMilestones(),
             loadCivicPoints(),
-            createBudgetChart()
+            createBudgetChart(),
+            loadOrganizationData()
         ]);
     } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -410,38 +619,48 @@ async function loadBudgetData() {
 // Load proposals
 async function loadProposals() {
     try {
-        // Mock proposals data (replace with actual contract calls)
-        const mockProposals = [
-            {
-                id: 1,
-                title: "New Community Park",
-                description: "Build a new park with playground equipment and green spaces for families.",
-                amount: "25,000",
-                yesVotes: 45,
-                noVotes: 12,
-                status: "active"
-            },
-            {
-                id: 2,
-                title: "Road Repair Project",
-                description: "Fix potholes and resurface Main Street and Oak Avenue.",
-                amount: "18,500",
-                yesVotes: 38,
-                noVotes: 8,
-                status: "active"
-            },
-            {
-                id: 3,
-                title: "Community Center WiFi",
-                description: "Install high-speed internet access in the community center.",
-                amount: "5,200",
-                yesVotes: 52,
-                noVotes: 3,
-                status: "active"
-            }
-        ];
+        const currentCommunity = auth.getCurrentCommunity();
         
-        displayProposals(mockProposals);
+        if (currentCommunity && currentCommunity.proposals.length > 0) {
+            // Load proposals from current community
+            displayProposals(currentCommunity.proposals);
+        } else {
+            // Mock proposals data for demonstration
+            const mockProposals = [
+                {
+                    id: 1,
+                    title: "New Community Park",
+                    description: "Build a new park with playground equipment and green spaces for families.",
+                    amount: "25,000",
+                    yesVotes: 45,
+                    noVotes: 12,
+                    status: "active",
+                    communityCode: currentCommunity ? currentCommunity.code : 'DEMO'
+                },
+                {
+                    id: 2,
+                    title: "Road Repair Project",
+                    description: "Fix potholes and resurface Main Street and Oak Avenue.",
+                    amount: "18,500",
+                    yesVotes: 38,
+                    noVotes: 8,
+                    status: "active",
+                    communityCode: currentCommunity ? currentCommunity.code : 'DEMO'
+                },
+                {
+                    id: 3,
+                    title: "Community Center WiFi",
+                    description: "Install high-speed internet access in the community center.",
+                    amount: "5,200",
+                    yesVotes: 52,
+                    noVotes: 3,
+                    status: "active",
+                    communityCode: currentCommunity ? currentCommunity.code : 'DEMO'
+                }
+            ];
+            
+            displayProposals(mockProposals);
+        }
     } catch (error) {
         console.error('Error loading proposals:', error);
     }
@@ -548,19 +767,79 @@ function displayMilestones(milestones) {
 // Load civic points
 async function loadCivicPoints() {
     try {
-        if (contract && userAddress) {
-            // Get member info from contract
-            const memberInfo = await contract.getMember(userAddress);
-            const points = memberInfo[2]; // civicPoints is the 3rd element
-            document.getElementById('civicPoints').textContent = points.toString();
+        const currentCommunity = auth.getCurrentCommunity();
+        const userInfo = auth.getUserInfo();
+        
+        if (currentCommunity && userInfo) {
+            // Find user in community members
+            const member = currentCommunity.members.find(m => m.email === userInfo.email);
+            if (member) {
+                document.getElementById('civicPoints').textContent = member.civicPoints || 0;
+            } else {
+                document.getElementById('civicPoints').textContent = '0';
+            }
         } else {
-            // Fallback to mock data
             document.getElementById('civicPoints').textContent = '0';
         }
     } catch (error) {
         console.error('Error loading civic points:', error);
-        // Fallback to mock data
         document.getElementById('civicPoints').textContent = '0';
+    }
+}
+
+// Load organization data and show admin panel
+function loadOrganizationData() {
+    const userInfo = auth.getUserInfo();
+    const isAdmin = auth.isCurrentUserAdmin();
+    const adminPanel = document.getElementById('orgAdminPanel');
+    
+    if (isAdmin && adminPanel) {
+        adminPanel.classList.remove('hidden');
+        
+        const currentCommunity = auth.getCurrentCommunity();
+        if (currentCommunity) {
+            // Update community code display
+            document.getElementById('organizationCommunityCode').textContent = currentCommunity.code;
+            
+            // Update member count
+            document.getElementById('memberCount').textContent = currentCommunity.members.length;
+            
+            // Update active proposals count
+            document.getElementById('activeProposals').textContent = currentCommunity.proposals.length;
+        }
+    } else if (adminPanel) {
+        adminPanel.classList.add('hidden');
+    }
+}
+
+// Copy community code to clipboard
+async function copyCommunityCode() {
+    const codeElement = document.getElementById('organizationCommunityCode');
+    const code = codeElement.textContent;
+    
+    try {
+        await navigator.clipboard.writeText(code);
+        
+        // Show feedback
+        const originalText = codeElement.textContent;
+        codeElement.textContent = 'Copied!';
+        codeElement.style.color = 'var(--success-color)';
+        
+        setTimeout(() => {
+            codeElement.textContent = originalText;
+            codeElement.style.color = '';
+        }, 2000);
+        
+    } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        alert('Community code copied to clipboard!');
     }
 }
 
@@ -604,15 +883,41 @@ async function vote(proposalId, support) {
     try {
         showLoading('Submitting vote...');
         
-        if (!contract) {
-            alert('Contract not initialized. Please ensure you are connected to the correct network.');
+        const currentCommunity = auth.getCurrentCommunity();
+        if (!currentCommunity) {
+            alert('No community selected.');
             hideLoading();
             return;
         }
         
-        // Call contract vote function
-        const tx = await contract.vote(proposalId, support);
-        await tx.wait();
+        const proposal = currentCommunity.proposals.find(p => p.id === proposalId);
+        if (!proposal) {
+            alert('Proposal not found.');
+            hideLoading();
+            return;
+        }
+        
+        const userInfo = auth.getUserInfo();
+        
+        // Check if user has already voted
+        if (proposal.voters.includes(userInfo.email)) {
+            alert('You have already voted on this proposal.');
+            hideLoading();
+            return;
+        }
+        
+        // Add vote
+        if (support) {
+            proposal.yesVotes += 1;
+        } else {
+            proposal.noVotes += 1;
+        }
+        
+        // Record voter
+        proposal.voters.push(userInfo.email);
+        
+        // Save changes
+        auth.saveCommunities();
         
         // Award civic points for voting
         await awardCivicPoints(10);
@@ -664,9 +969,16 @@ async function verifyMilestone(milestoneId, approved) {
 // Award civic points
 async function awardCivicPoints(amount) {
     try {
-        if (civicPointsContract) {
-            const tx = await civicPointsContract.awardPoints(userAddress, amount);
-            await tx.wait();
+        const currentCommunity = auth.getCurrentCommunity();
+        const userInfo = auth.getUserInfo();
+        
+        if (currentCommunity && userInfo) {
+            // Find user in community members
+            const member = currentCommunity.members.find(m => m.email === userInfo.email);
+            if (member) {
+                member.civicPoints = (member.civicPoints || 0) + amount;
+                auth.saveCommunities();
+            }
         }
     } catch (error) {
         console.error('Error awarding civic points:', error);
@@ -699,25 +1011,50 @@ async function createProposal(event) {
         const description = document.getElementById('proposalDescription').value;
         const amount = document.getElementById('proposalAmount').value;
         
-        if (!contract) {
-            alert('Contract not initialized. Please ensure you are connected to the correct network.');
+        const currentCommunity = auth.getCurrentCommunity();
+        if (!currentCommunity) {
+            alert('No community selected. Please join a community first.');
             hideLoading();
             return;
         }
         
-        // Convert amount to wei (assuming ETH input)
-        const amountWei = ethers.parseEther(amount);
+        const userInfo = auth.getUserInfo();
+        const isAdmin = auth.isCurrentUserAdmin();
         
-        // Call contract create proposal function
-        const tx = await contract.createProposal(title, description, amountWei);
-        await tx.wait();
+        // Check if user can create proposals
+        if (userInfo.userType !== 'organization' && !currentCommunity.settings.allowMemberProposals) {
+            alert('Only organization administrators can create proposals in this community.');
+            hideLoading();
+            return;
+        }
+        
+        // Create proposal object
+        const newProposal = {
+            id: Date.now(), // Simple ID generation
+            title: title,
+            description: description,
+            amount: amount,
+            proposer: userAddress,
+            proposerEmail: userInfo.email,
+            yesVotes: 0,
+            noVotes: 0,
+            voters: [],
+            status: 'active',
+            createdAt: Date.now(),
+            communityCode: currentCommunity.code
+        };
+        
+        // Add to community
+        currentCommunity.proposals.push(newProposal);
+        auth.saveCommunities();
         
         // Award civic points for creating proposal
         await awardCivicPoints(20);
         
-        // Reload proposals
+        // Reload proposals and update display
         await loadProposals();
         await loadCivicPoints();
+        await loadOrganizationData(); // Update proposal count
         
         hideCreateProposalModal();
         alert('Proposal created successfully! You earned 20 civic points.');
