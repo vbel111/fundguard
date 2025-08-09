@@ -362,9 +362,69 @@ class FundGuardAuth {
             // Organization using connected wallet
             return await this.provider.getSigner();
         } else if (this.currentUser.userType === 'user' && this.userWallet) {
-            // Regular user with generated wallet
-            const provider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology");
-            return this.userWallet.connect(provider);
+            // Regular user with generated wallet - try multiple RPC endpoints for reliability
+            const rpcUrls = [
+                "https://rpc-amoy.polygon.technology",
+                "https://polygon-amoy-bor-rpc.publicnode.com",
+                "https://rpc.ankr.com/polygon_amoy",
+                "https://polygon-amoy.drpc.org"
+            ];
+            
+            // Try each RPC endpoint until one works
+            for (const rpcUrl of rpcUrls) {
+                try {
+                    const provider = new ethers.JsonRpcProvider(rpcUrl);
+                    // Test the connection
+                    await provider.getNetwork();
+                    console.log(`Connected to Amoy using: ${rpcUrl}`);
+                    
+                    // Create signer with proper gas configuration for Amoy
+                    const signer = this.userWallet.connect(provider);
+                    
+                    // Override sendTransaction to include proper gas settings
+                    const originalSendTransaction = signer.sendTransaction.bind(signer);
+                    signer.sendTransaction = async (transaction) => {
+                        // Only apply gas configuration to actual transactions, not view calls
+                        if (!transaction || typeof transaction !== 'object') {
+                            return originalSendTransaction(transaction);
+                        }
+                        
+                        // Get current gas price from network
+                        const feeData = await provider.getFeeData();
+                        
+                        // Set minimum gas prices for Amoy (higher than default)
+                        const gasPrice = feeData.gasPrice ? 
+                            (feeData.gasPrice < ethers.parseUnits("30", "gwei") ? 
+                                ethers.parseUnits("30", "gwei") : feeData.gasPrice) : 
+                            ethers.parseUnits("30", "gwei");
+                        
+                        // Configure transaction with proper gas settings
+                        const txConfig = {
+                            ...transaction,
+                            gasPrice: gasPrice,
+                            // For EIP-1559 transactions
+                            maxFeePerGas: gasPrice,
+                            maxPriorityFeePerGas: ethers.parseUnits("25", "gwei")
+                        };
+                        
+                        console.log('Sending transaction with gas config:', {
+                            gasPrice: ethers.formatUnits(gasPrice, "gwei") + " gwei",
+                            maxFeePerGas: ethers.formatUnits(gasPrice, "gwei") + " gwei",
+                            maxPriorityFeePerGas: "25 gwei",
+                            to: transaction.to,
+                            data: transaction.data ? transaction.data.substring(0, 10) + '...' : 'none'
+                        });
+                        
+                        return originalSendTransaction(txConfig);
+                    };
+                    
+                    return signer;
+                } catch (error) {
+                    console.warn(`RPC ${rpcUrl} failed:`, error.message);
+                    continue;
+                }
+            }
+            throw new Error("All Amoy RPC endpoints are unavailable");
         } else {
             throw new Error("No wallet available");
         }
@@ -593,10 +653,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const hasSession = await window.fundGuardAuth.autoLogin();
             if (hasSession) {
                 console.log('Found existing session, auto-connecting...');
-                // Trigger auto-login in main app
-                if (window.handleAutoLogin) {
-                    window.handleAutoLogin();
-                }
+                // Trigger auto-login in main app (with safety check)
+                const triggerAutoLogin = () => {
+                    if (window.handleAutoLogin) {
+                        window.handleAutoLogin();
+                    } else {
+                        console.log('Main app not ready yet, retrying auto-login...');
+                        setTimeout(triggerAutoLogin, 100);
+                    }
+                };
+                triggerAutoLogin();
             }
         } else {
             console.error('Failed to initialize authentication system');

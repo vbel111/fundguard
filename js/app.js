@@ -34,24 +34,92 @@ const CONTRACT_ABI = [
     "event CivicPointsAwarded(address indexed member, uint256 points, string reason)"
 ];
 
-// Polygon Amoy RPC URL (updated from deprecated Mumbai)
-const AMOY_RPC_URL = "https://rpc-amoy.polygon.technology";
+// Polygon Amoy RPC URLs (multiple endpoints for reliability)
+const AMOY_RPC_URLS = [
+    "https://rpc-amoy.polygon.technology",
+    "https://polygon-amoy-bor-rpc.publicnode.com",
+    "https://rpc.ankr.com/polygon_amoy",
+    "https://polygon-amoy.drpc.org"
+];
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('FundGuard initializing...');
     
-    // Get Web3Auth instance (will be available after web3auth.js loads)
-    auth = window.fundGuardAuth;
+    // Check if ethers.js loaded properly
+    if (typeof ethers === 'undefined') {
+        console.error('❌ Ethers.js not loaded! Check your internet connection.');
+        alert('Failed to load required libraries. Please check your internet connection and refresh the page.');
+        return;
+    }
+    
+    console.log('✅ Ethers.js loaded successfully');
+    
+    // Wait for Web3Auth instance to be available
+    await waitForAuthSystem();
     
     // Set up event listeners
     setupEventListeners();
     
-    // The Web3Auth initialization is handled in web3auth.js
-    // Auto-login will be triggered if session exists
+    // Test blockchain connectivity on startup
+    testBlockchainConnectivity();
     
     console.log('FundGuard initialized successfully');
 });
+
+// Wait for auth system to be ready
+async function waitForAuthSystem() {
+    return new Promise((resolve) => {
+        const checkAuth = () => {
+            if (window.fundGuardAuth) {
+                auth = window.fundGuardAuth;
+                console.log('✅ Auth system ready');
+                resolve();
+            } else {
+                console.log('⏳ Waiting for auth system...');
+                setTimeout(checkAuth, 50);
+            }
+        };
+        checkAuth();
+    });
+}
+
+// Test blockchain connectivity
+async function testBlockchainConnectivity() {
+    console.log('🔍 Testing blockchain connectivity...');
+    
+    if (typeof ethers === 'undefined') {
+        console.error('❌ Ethers.js not available');
+        return;
+    }
+    
+    try {
+        // Test the primary RPC endpoint
+        const provider = new ethers.JsonRpcProvider(AMOY_RPC_URLS[0]);
+        const network = await provider.getNetwork();
+        console.log(`✅ Connected to ${network.name} (Chain ID: ${network.chainId})`);
+        
+        // Test contract
+        const code = await provider.getCode(CONTRACT_ADDRESS);
+        if (code === '0x') {
+            console.warn('⚠️ No contract found at configured address');
+        } else {
+            console.log(`✅ Contract verified (${code.length} bytes)`);
+            
+            // Test contract call
+            const contract = new ethers.Contract(CONTRACT_ADDRESS, [
+                "function proposalCount() external view returns (uint256)"
+            ], provider);
+            
+            const proposalCount = await contract.proposalCount();
+            console.log(`✅ Contract responsive - Proposal count: ${proposalCount}`);
+        }
+        
+        console.log('🎉 Blockchain connectivity test passed!');
+    } catch (error) {
+        console.error('❌ Blockchain connectivity test failed:', error.message);
+    }
+}
 
 // Auto-login handler (called from web3auth.js)
 window.handleAutoLogin = async () => {
@@ -122,19 +190,30 @@ function setupEventListeners() {
 
 // Authentication UI Functions
 function showAuthSection() {
-    document.getElementById('authSection').classList.remove('hidden');
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('communitySection').classList.add('hidden');
-    document.getElementById('dashboardSection').classList.add('hidden');
+    const authSection = document.getElementById('authSection');
+    const walletSection = document.getElementById('walletSection');
+    const communitySection = document.getElementById('communitySection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    
+    if (authSection) authSection.classList.remove('hidden');
+    if (walletSection) walletSection.classList.add('hidden');
+    if (communitySection) communitySection.classList.add('hidden');
+    if (dashboardSection) dashboardSection.classList.add('hidden');
+    
     showAuthWelcome();
     updateHeaderForLoggedOut();
 }
 
 function showCommunitySection() {
-    document.getElementById('authSection').classList.add('hidden');
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('communitySection').classList.remove('hidden');
-    document.getElementById('dashboardSection').classList.add('hidden');
+    const authSection = document.getElementById('authSection');
+    const walletSection = document.getElementById('walletSection');
+    const communitySection = document.getElementById('communitySection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    
+    if (authSection) authSection.classList.add('hidden');
+    if (walletSection) walletSection.classList.add('hidden');
+    if (communitySection) communitySection.classList.remove('hidden');
+    if (dashboardSection) dashboardSection.classList.add('hidden');
     
     // Update header to show user is logged in
     const userInfo = auth.getUserInfo();
@@ -186,20 +265,36 @@ function showOrgWalletSection() {
 }
 
 function updateHeaderForLoggedOut() {
-    document.getElementById('authButtons').classList.remove('hidden');
-    document.getElementById('userMenu').classList.add('hidden');
+    const authButtons = document.getElementById('authButtons');
+    const userMenu = document.getElementById('userMenu');
+    
+    if (authButtons) authButtons.classList.remove('hidden');
+    if (userMenu) userMenu.classList.add('hidden');
 }
 
 function updateHeaderForLoggedIn(user) {
-    document.getElementById('authButtons').classList.add('hidden');
-    document.getElementById('userMenu').classList.remove('hidden');
-    const userTypeLabel = user.userType === 'organization' ? '🏢' : '👤';
-    document.getElementById('userEmail').textContent = `${userTypeLabel} ${user.email}`;
+    const authButtons = document.getElementById('authButtons');
+    const userMenu = document.getElementById('userMenu');
+    const userEmail = document.getElementById('userEmail');
+    
+    if (authButtons) authButtons.classList.add('hidden');
+    if (userMenu) userMenu.classList.remove('hidden');
+    
+    if (userEmail && user) {
+        const userTypeLabel = user.userType === 'organization' ? '🏢' : '👤';
+        userEmail.textContent = `${userTypeLabel} ${user.email}`;
+    }
 }
 
 // User Authentication Handlers
 async function handleUserRegister(event) {
     event.preventDefault();
+    
+    // Safety check for auth system
+    if (!auth) {
+        alert('Authentication system not ready. Please refresh the page and try again.');
+        return;
+    }
     
     const email = document.getElementById('userRegisterEmail').value;
     const password = document.getElementById('userRegisterPassword').value;
@@ -222,6 +317,12 @@ async function handleUserRegister(event) {
 
 async function handleUserLogin(event) {
     event.preventDefault();
+    
+    // Safety check for auth system
+    if (!auth) {
+        alert('Authentication system not ready. Please refresh the page and try again.');
+        return;
+    }
     
     const email = document.getElementById('userLoginEmail').value;
     const password = document.getElementById('userLoginPassword').value;
@@ -339,11 +440,16 @@ async function handleJoinCommunity(event) {
 
 // Load user's communities
 function loadUserCommunities() {
+    if (!auth) return; // Safety check for auth system
+    
     const communities = auth.getUserCommunities();
     const section = document.getElementById('userCommunitiesSection');
     const list = document.getElementById('userCommunitiesList');
     
-    if (communities.length > 0) {
+    // Safety checks for DOM elements
+    if (!section || !list) return;
+    
+    if (communities && communities.length > 0) {
         section.classList.remove('hidden');
         list.innerHTML = communities.map(community => `
             <div class="community-item">
@@ -393,26 +499,66 @@ async function handleLogout() {
 
 async function requestTestFunds() {
     try {
-        const result = await auth.requestTestFunds();
-        if (result.success) {
-            alert(`Test funds requested for your wallet!\n\nAddress: ${result.address}\n\nThe Amoy faucet will open in a new tab. Please request MATIC tokens there.`);
-        }
+        const userInfo = auth.getUserInfo();
+        const walletAddress = await auth.getAddress();
+        
+        console.log('Requesting test funds for:', walletAddress);
+        
+        // Check current balance
+        const provider = signer ? signer.provider : new ethers.JsonRpcProvider(AMOY_RPC_URLS[0]);
+        const balance = await provider.getBalance(walletAddress);
+        const balanceInMatic = ethers.formatEther(balance);
+        
+        console.log('Current balance:', balanceInMatic, 'MATIC');
+        
+        // Open Amoy faucet
+        const faucetUrl = 'https://faucet.polygon.technology/';
+        window.open(faucetUrl, '_blank');
+        
+        alert(`Test funds request initiated!\n\nYour wallet address: ${walletAddress}\nCurrent balance: ${parseFloat(balanceInMatic).toFixed(4)} MATIC\n\nThe Polygon Amoy faucet has opened in a new tab.\n\nPlease:\n1. Select "Polygon Amoy" network\n2. Enter your wallet address\n3. Complete the verification\n4. Wait for the tokens to arrive\n\nYou'll need at least 0.01 MATIC for gas fees.`);
+        
+        return {
+            success: true,
+            address: walletAddress,
+            currentBalance: balanceInMatic,
+            faucetUrl: faucetUrl
+        };
     } catch (error) {
         console.error('Error requesting test funds:', error);
         alert('Error requesting test funds: ' + error.message);
+        return { success: false, error: error.message };
     }
 }
 
 // Auto-login handler (called from web3auth.js)
 window.handleAutoLogin = async () => {
+    // Safety check - ensure auth system is initialized
+    if (!auth || !window.fundGuardAuth) {
+        console.warn('Auth system not ready yet, waiting...');
+        setTimeout(() => window.handleAutoLogin(), 100);
+        return;
+    }
     await connectWithAuth();
 };
 
 // Connect with authentication system
 async function connectWithAuth() {
     try {
+        // Safety check for auth system
+        if (!auth) {
+            console.error('Auth system not initialized');
+            showAuthSection();
+            return;
+        }
+        
         // Check if user has joined any community (for regular users)
         const userInfo = auth.getUserInfo();
+        if (!userInfo) {
+            console.warn('No user info available');
+            showAuthSection();
+            return;
+        }
+        
         if (userInfo.userType === 'user') {
             const currentCommunity = auth.getCurrentCommunity();
             if (!currentCommunity) {
@@ -472,38 +618,56 @@ async function connectWallet() {
 // Initialize smart contracts
 async function initializeContracts() {
     try {
+        console.log('Initializing contracts...');
+        
+        // Ensure we have a signer
+        if (!signer) {
+            throw new Error('No signer available');
+        }
+
         // Get network info to ensure we're on the right network
+        console.log('Getting network information...');
         const network = await signer.provider.getNetwork();
         console.log('Connected to network:', network.name, 'Chain ID:', network.chainId.toString());
         
         // Check if we're on Polygon Amoy (Chain ID: 80002)
         if (network.chainId !== 80002n) {
-            console.warn('Warning: Not connected to Polygon Amoy testnet. Some features may not work.');
+            console.warn('Warning: Not connected to Polygon Amoy testnet (expected chain ID: 80002, got:', network.chainId.toString(), '). Some features may not work.');
         }
         
         // Initialize main contract
         if (CONTRACT_ADDRESS && CONTRACT_ADDRESS !== "0x...") {
+            console.log('Initializing contract at:', CONTRACT_ADDRESS);
             contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-            console.log('FundGuard contract initialized at:', CONTRACT_ADDRESS);
             
             // Test contract connection by checking if it's deployed
             try {
+                console.log('Verifying contract deployment...');
                 const code = await signer.provider.getCode(CONTRACT_ADDRESS);
                 if (code === '0x') {
                     throw new Error('No contract deployed at this address');
                 }
-                console.log('✅ Contract verified on network');
+                console.log('✅ Contract verified on network (code length:', code.length, 'bytes)');
+                
+                // Try to call a simple view function to ensure the contract is working
+                try {
+                    const proposalCount = await contract.proposalCount();
+                    console.log('✅ Contract is responsive (proposal count:', proposalCount.toString(), ')');
+                } catch (contractError) {
+                    console.warn('⚠️ Contract verification warning:', contractError.message);
+                    // Don't throw here - the contract might still work for other functions
+                }
             } catch (error) {
                 console.error('❌ Contract verification failed:', error.message);
                 throw new Error(`Contract not found at ${CONTRACT_ADDRESS}. Please check the contract address and network.`);
             }
         } else {
-            console.warn('Contract address not set');
+            throw new Error('Contract address not configured. Please set CONTRACT_ADDRESS in app.js');
         }
         
-        console.log('Contracts initialized successfully');
+        console.log('✅ Contracts initialized successfully');
     } catch (error) {
-        console.error('Error initializing contracts:', error);
+        console.error('❌ Error initializing contracts:', error);
         throw error;
     }
 }
@@ -539,37 +703,97 @@ async function checkAndRegisterMember() {
     try {
         if (!contract) return;
         
-        // Check if user is already registered
-        const memberInfo = await contract.getMember(userAddress);
+        console.log('Checking member registration for:', userAddress);
+        
+        // Check if user is already registered (use read-only contract for view calls)
+        const readOnlyContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+        const memberInfo = await readOnlyContract.getMember(userAddress);
         
         if (!memberInfo[0]) { // isRegistered is false
             const shouldRegister = confirm('You need to register as a community member to participate. Register now?');
             if (shouldRegister) {
-                showLoading('Registering member...');
-                const tx = await contract.registerMember();
-                await tx.wait();
-                alert('Successfully registered as a community member!');
-                hideLoading();
+                try {
+                    showLoading('Registering member...');
+                    
+                    // Use the gas configuration utility for consistent gas settings
+                    const gasConfig = await getGasConfig();
+                    
+                    console.log('Registering member with gas configuration:', {
+                        gasPrice: ethers.formatUnits(gasConfig.gasPrice, "gwei") + " gwei",
+                        maxFeePerGas: ethers.formatUnits(gasConfig.maxFeePerGas, "gwei") + " gwei",
+                        maxPriorityFeePerGas: ethers.formatUnits(gasConfig.maxPriorityFeePerGas, "gwei") + " gwei"
+                    });
+                    
+                    // Call registerMember with proper gas configuration
+                    const tx = await contract.registerMember({
+                        gasPrice: gasConfig.gasPrice,
+                        maxFeePerGas: gasConfig.maxFeePerGas,
+                        maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas
+                    });
+                    
+                    console.log('Registration transaction sent:', tx.hash);
+                    await tx.wait();
+                    alert('Successfully registered as a community member!');
+                    hideLoading();
+                } catch (gasError) {
+                    console.error('Registration failed:', gasError);
+                    hideLoading();
+                    
+                    // Improved error handling for different failure scenarios
+                    if (gasError.message.includes('gas') || gasError.message.includes('tip cap') || gasError.code === 'UNKNOWN_ERROR') {
+                        alert(`Transaction failed due to gas configuration. 
+                        
+Error: ${gasError.message}
+
+This is a known issue with Polygon Amoy testnet requiring higher gas prices. The app has been updated to handle this, but sometimes retrying helps.
+
+Please try again in a few moments, or contact support if the issue persists.`);
+                    } else if (gasError.message.includes('insufficient funds')) {
+                        alert('Insufficient MATIC tokens for gas fees. Please get test tokens from the Amoy faucet first.');
+                        // Auto-open the request test funds flow
+                        requestTestFunds();
+                    } else if (gasError.message.includes('user rejected')) {
+                        alert('Transaction was cancelled by user.');
+                    } else {
+                        alert('Registration failed: ' + gasError.message);
+                    }
+                }
             }
+        } else {
+            console.log('User is already registered as a member');
         }
     } catch (error) {
         console.error('Error checking member registration:', error);
+        
+        // Don't show an alert for read-only operations failing
+        if (error.message.includes('gas') || error.message.includes('tip cap')) {
+            console.warn('Gas configuration issue detected. Member registration check skipped.');
+        }
     }
 }
 
 // Show wallet connection section
 function showWalletSection() {
-    document.getElementById('authSection').classList.add('hidden');
-    document.getElementById('walletSection').classList.remove('hidden');
-    document.getElementById('dashboardSection').classList.add('hidden');
+    const authSection = document.getElementById('authSection');
+    const walletSection = document.getElementById('walletSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    
+    if (authSection) authSection.classList.add('hidden');
+    if (walletSection) walletSection.classList.remove('hidden');
+    if (dashboardSection) dashboardSection.classList.add('hidden');
 }
 
 // Show dashboard section
 function showDashboard() {
-    document.getElementById('authSection').classList.add('hidden');
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('communitySection').classList.add('hidden');
-    document.getElementById('dashboardSection').classList.remove('hidden');
+    const authSection = document.getElementById('authSection');
+    const walletSection = document.getElementById('walletSection');
+    const communitySection = document.getElementById('communitySection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    
+    if (authSection) authSection.classList.add('hidden');
+    if (walletSection) walletSection.classList.add('hidden');
+    if (communitySection) communitySection.classList.add('hidden');
+    if (dashboardSection) dashboardSection.classList.remove('hidden');
 }
 
 // Update user info display
@@ -975,8 +1199,11 @@ async function verifyMilestone(milestoneId, approved) {
             return;
         }
         
-        // Call contract verify function
-        const tx = await contract.verifyMilestone(milestoneId, approved);
+        // Call contract verify function with proper gas configuration
+        const gasConfig = await getGasConfig();
+        const tx = await contract.verifyMilestone(milestoneId, approved, gasConfig);
+        
+        console.log('Milestone verification transaction sent:', tx.hash);
         await tx.wait();
         
         // Award civic points for verification
@@ -1118,6 +1345,64 @@ function showLoading(message = 'Loading...') {
 // Hide loading spinner
 function hideLoading() {
     document.getElementById('loadingSpinner').classList.add('hidden');
+}
+
+// Utility function to get proper gas configuration for Amoy
+async function getGasConfig(provider = null) {
+    try {
+        const activeProvider = provider || signer?.provider;
+        if (!activeProvider) {
+            console.warn('No provider available for gas estimation, using defaults');
+            return {
+                gasPrice: ethers.parseUnits("30", "gwei"),
+                maxFeePerGas: ethers.parseUnits("30", "gwei"),
+                maxPriorityFeePerGas: ethers.parseUnits("25", "gwei")
+            };
+        }
+        
+        // Get current network gas prices
+        const feeData = await activeProvider.getFeeData();
+        console.log('Current network fee data:', {
+            gasPrice: feeData.gasPrice ? ethers.formatUnits(feeData.gasPrice, "gwei") + " gwei" : "null",
+            maxFeePerGas: feeData.maxFeePerGas ? ethers.formatUnits(feeData.maxFeePerGas, "gwei") + " gwei" : "null",
+            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ? ethers.formatUnits(feeData.maxPriorityFeePerGas, "gwei") + " gwei" : "null"
+        });
+        
+        // Set minimum gas prices for Amoy (network requires higher gas prices)
+        const minGasPrice = ethers.parseUnits("30", "gwei");
+        const minTipCap = ethers.parseUnits("25", "gwei");
+        
+        const gasPrice = feeData.gasPrice && feeData.gasPrice > minGasPrice ? 
+            feeData.gasPrice : minGasPrice;
+        
+        const maxFeePerGas = feeData.maxFeePerGas && feeData.maxFeePerGas > minGasPrice ? 
+            feeData.maxFeePerGas : minGasPrice;
+            
+        const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas && feeData.maxPriorityFeePerGas > minTipCap ? 
+            feeData.maxPriorityFeePerGas : minTipCap;
+        
+        const config = {
+            gasPrice,
+            maxFeePerGas,
+            maxPriorityFeePerGas
+        };
+        
+        console.log('Using gas configuration:', {
+            gasPrice: ethers.formatUnits(config.gasPrice, "gwei") + " gwei",
+            maxFeePerGas: ethers.formatUnits(config.maxFeePerGas, "gwei") + " gwei",
+            maxPriorityFeePerGas: ethers.formatUnits(config.maxPriorityFeePerGas, "gwei") + " gwei"
+        });
+        
+        return config;
+    } catch (error) {
+        console.error('Error getting gas config:', error);
+        // Return safe defaults for Amoy
+        return {
+            gasPrice: ethers.parseUnits("30", "gwei"),
+            maxFeePerGas: ethers.parseUnits("30", "gwei"),
+            maxPriorityFeePerGas: ethers.parseUnits("25", "gwei")
+        };
+    }
 }
 
 // Format address for display

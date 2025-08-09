@@ -44,7 +44,7 @@
    ```
 
 2. **Configure Hardhat**
-   - Update `hardhat.config.js` with Mumbai testnet configuration
+   - Update `hardhat.config.js` with Amoy testnet configuration
 
 3. **Deploy Script**
    ```javascript
@@ -89,7 +89,7 @@
 ### Developer Verification:
 
 - Check browser console for Web3Auth connection
-- Verify contract interactions on Mumbai PolygonScan
+- Verify contract interactions on Amoy PolygonScan
 - Test with multiple email accounts
 - Ensure responsive design on mobile
 
@@ -104,7 +104,7 @@
 
 ### What Happens Behind the Scenes:
 ```
-Email Verification → Wallet Creation → Mumbai Connection → Smart Contract Registration → Ready to Participate
+Email Verification → Wallet Creation → Amoy Connection → Smart Contract Registration → Ready to Participate
 ```
 
 ## Benefits of Web3Auth Integration
@@ -130,7 +130,7 @@ Email Verification → Wallet Creation → Mumbai Connection → Smart Contract 
 
 ## Post-Deployment Checklist
 
-- [ ] Contract deployed successfully to Mumbai testnet
+- [ ] Contract deployed successfully to Amoy testnet
 - [ ] Contract address updated in `js/app.js`
 - [ ] Web3Auth authentication working
 - [ ] Email login creates wallets automatically
@@ -153,7 +153,7 @@ Email Verification → Wallet Creation → Mumbai Connection → Smart Contract 
 
 **Contract Interaction Failures**
 - Verify contract address is correct
-- Check Mumbai testnet status
+- Check Amoy testnet status
 - Ensure user has test MATIC tokens
 - Check browser console for errors
 
@@ -196,8 +196,8 @@ Email Verification → Wallet Creation → Mumbai Connection → Smart Contract 
 ## Support & Resources
 
 - **Web3Auth Docs**: https://web3auth.io/docs/
-- **Polygon Mumbai Faucet**: https://faucet.polygon.technology/
-- **Mumbai Block Explorer**: https://mumbai.polygonscan.com/
+- **Polygon Amoy Faucet**: https://faucet.polygon.technology/
+- **Amoy Block Explorer**: https://www.oklink.com/amoy/
 - **FundGuard Repository**: Your project repository
 
 ## Success Metrics

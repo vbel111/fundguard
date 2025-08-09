@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Web3Auth](https://img.shields.io/badge/Web3Auth-v9.0.0-blue)](https://web3auth.io/)
-[![Polygon](https://img.shields.io/badge/Polygon-Mumbai-purple)](https://polygon.technology/)
+[![Polygon](https://img.shields.io/badge/Polygon-Amoy-purple)](https://polygon.technology/)
 
 ## 🌟 Features
 
@@ -32,7 +32,7 @@
 
 3. **Deploy Smart Contract**
    - Follow the detailed guide in [`contracts/DEPLOYMENT.md`](contracts/DEPLOYMENT.md)
-   - Deploy to Polygon Mumbai Testnet using Remix IDE
+   - Deploy to Polygon Amoy Testnet using Remix IDE
    - Update the contract address in `js/app.js`
 
 4. **Start Development Server**
@@ -56,7 +56,7 @@
 
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
 - **Web3**: Ethers.js, Web3Auth v9.0.0
-- **Blockchain**: Solidity, OpenZeppelin, Polygon Mumbai
+- **Blockchain**: Solidity, OpenZeppelin, Polygon Amoy
 - **UI/UX**: Mobile-first responsive design, Chart.js
 - **Authentication**: Web3Auth (email/social login)
 
@@ -80,7 +80,7 @@ fundguard/
 ## 🔧 Tech Stack
 
 - **Frontend**: HTML, CSS, JavaScript
-- **Blockchain**: Solidity, Polygon (Mumbai Testnet)
+- **Blockchain**: Solidity, Polygon (Amoy Testnet)
 - **Web3**: Ethers.js, Web3Modal
 - **Visualization**: Chart.js
 - **Development**: Remix IDE for smart contracts
